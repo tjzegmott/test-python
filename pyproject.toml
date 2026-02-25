@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "test_python"
-version = "0.0.0"
+version = "0.1.0"
 description = "A Python package"
 readme = "README.md"
 license = "MIT"
