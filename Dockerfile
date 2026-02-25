@@ -1,0 +1,104 @@
+# syntax=docker/dockerfile:1
+
+# The devcontainer should use the developer target and run as root with podman
+# or docker with user namespaces.
+FROM ghcr.io/tjzegmott/ubuntu-devcontainer:noble AS developer
+
+# Environment
+ENV \
+  # Python behaviour
+  PYTHONUNBUFFERED=1 \
+  PYTHONDONTWRITEBYTECODE=1 \
+  # Pip behaviour
+  PIP_NO_CACHE_DIR=true \
+  PIP_DISABLE_PIP_VERSION_CHECK=on \
+  PIP_DEFAULT_TIMEOUT=100 \
+  # UV settings
+  UV_PROJECT_ENVIRONMENT=.venv \
+  UV_LINK_MODE=copy \
+  UV_PYTHON_INSTALL_DIR=/python \
+  # Project paths
+  PYSETUP_PATH="/app" \
+  VENV_PATH="/app/.venv" \
+  # OS behaviour
+  DEBIAN_FRONTEND=noninteractive \
+  OPENMP_ENABLED=1
+
+# Add any system dependencies for the developer/build environment here
+RUN set -ex \
+  && apt-get update -yqq \
+  && apt-get install -y --no-install-recommends \
+  graphviz \
+  # Cleanup
+  && apt-get autoremove -yqq --purge \
+  && apt-get clean \
+  && apt-get dist-clean \
+  && rm -rf \
+  /var/lib/apt/lists/* \
+  /tmp/* \
+  /var/tmp/* \
+  /usr/share/man \
+  /usr/share/doc \
+  /usr/share/doc-base
+
+# The build stage installs the context into the venv
+FROM developer AS build
+
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock* ./
+
+# Install dependencies (without dev dependencies)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
+
+# Copy source code
+COPY src/ src/
+COPY README.md ./
+
+# Install the project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+# The runtime stage copies the built venv into a runtime container
+FROM ubuntu:noble AS runtime
+
+# Add apt-get system dependecies for runtime here if needed
+# RUN set -ex \
+#   && apt-get update -yqq \
+#   && apt-get install -y --no-install-recommends \
+#   some-library \
+#   # Cleanup
+#   && apt-get autoremove -yqq --purge \
+#   && apt-get clean \
+#   && apt-get dist-clean \
+#   && rm -rf \
+#   /var/lib/apt/lists/* \
+#   /tmp/* \
+#   /var/tmp/* \
+#   /usr/share/man \
+#   /usr/share/doc \
+#   /usr/share/doc-base
+
+# Create non-root user for security
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid appgroup --shell /bin/bash --create-home appuser
+
+# Copy the python installation from the build stage
+COPY --from=build /python /python
+
+# Copy app and virtual environment from build
+COPY --from=build /app /app
+COPY --from=build /app/.venv /app/.venv
+
+# Set environment variables
+ENV PATH=/app/.venv/bin:$PATH \
+  PYTHONUNBUFFERED=1 \
+  PYTHONDONTWRITEBYTECODE=1
+
+# Switch to non-root user
+USER appuser
+
+# Default command - change this entrypoint if it is not the same as the repo
+ENTRYPOINT ["test_python"]
+CMD ["--help"]

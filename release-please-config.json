@@ -1,0 +1,22 @@
+{
+  "include-component-in-tag": false,
+  "tag-separator": "@",
+  "release-type": "python",
+  "separate-pull-requests": true,
+  "packages": {
+    ".": {
+      "package-name": "test_python",
+      "component": "Core",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "src/test_python/__init__.py"
+        },
+        {
+          "type": "generic",
+          "path": "docker-compose.yml"
+        }
+      ]
+    }
+  }
+}

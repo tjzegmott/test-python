@@ -1,0 +1,21 @@
+# Changes here will be overwritten by Copier
+_commit: ec86e1c
+_src_path: copier-templates/python/py-copier-template
+author_email: tzegmott@gmail.com
+author_name: Tarik Zegmott
+github_username: tjzegmott
+include_cli: true
+include_codecov: true
+include_docker: true
+include_docs: true
+include_github_actions: true
+include_prek: true
+include_pypi_publish: false
+include_security_scanning: true
+license: MIT
+project_description: A Python package
+project_name: test-python
+project_slug: test_python
+python_version: '3.10'
+python_versions_matrix: 3.10,3.11,3.12,3.13,3.14
+repository_name: test-python
